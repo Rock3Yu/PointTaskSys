@@ -1,188 +1,195 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
   <meta charset="UTF-8">
   <title>个人积分任务系统</title>
 </head>
+
 <body>
 
-<h1>个人任务 & 积分系统</h1>
+  <h1>个人任务 & 积分系统</h1>
 
-<h2>当前总积分：<span id="totalPoints">0</span></h2>
+  <h2>当前总积分：<span id="totalPoints">0</span></h2>
 
-<hr>
+  <hr>
 
-<h2>创建任务</h2>
-类型：
-<select id="taskType">
-  <option value="daily">每日任务</option>
-  <option value="weekly">每周任务</option>
-</select><br>
-标题：<input id="taskTitle"><br>
-描述：<input id="taskDesc"><br>
-积分：<input id="taskPoints" type="number"><br>
-<button onclick="addTask()">添加任务</button>
+  <h2>创建任务</h2>
+  类型：
+  <select id="taskType">
+    <option value="daily">每日任务</option>
+    <option value="weekly">每周任务</option>
+  </select><br>
+  标题：<input id="taskTitle"><br>
+  描述：<input id="taskDesc"><br>
+  积分：<input id="taskPoints" type="number"><br>
+  <button onclick="addTask()">添加任务</button>
 
-<hr>
+  <hr>
 
-<h2>任务列表</h2>
-<div id="taskList"></div>
+  <h2>任务列表</h2>
+  <div id="taskList"></div>
 
-<hr>
+  <hr>
 
-<h2>创建消耗项</h2>
-标题：<input id="costTitle"><br>
-消耗积分：<input id="costPoints" type="number"><br>
-<button onclick="addCost()">添加消耗项</button>
+  <h2>创建消耗项</h2>
+  标题：<input id="costTitle"><br>
+  消耗积分：<input id="costPoints" type="number"><br>
+  <button onclick="addCost()">添加消耗项</button>
 
-<hr>
+  <hr>
 
-<h2>消耗项列表</h2>
-<div id="costList"></div>
+  <h2>消耗项列表</h2>
+  <div id="costList"></div>
 
-<hr>
+  <hr>
 
-<h2>消耗记录</h2>
-<ul id="costLog"></ul>
+  <h2>消耗记录</h2>
+  <ul id="costLog"></ul>
 
-<script>
-/* ---------- 数据 ---------- */
-let data = JSON.parse(localStorage.getItem("taskData")) || {
-  points: 0,
-  tasks: [],
-  costs: [],
-  logs: []
-};
+  <script>
+    /* ---------- 数据 ---------- */
+    const GIST_ID = "https://gist.github.com/Rock3Yu/216037f52ce40fd1b08deda7e22495a0";
+    const GITHUB_TOKEN = "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";
+    const GIST_FILE = "task-data.json";
 
-function save() {
-  localStorage.setItem("taskData", JSON.stringify(data));
-  render();
-}
+    let data = JSON.parse(localStorage.getItem("taskData")) || {
+      points: 0,
+      tasks: [],
+      costs: [],
+      logs: []
+    };
 
-/* ---------- 任务 ---------- */
-function addTask() {
-  data.tasks.push({
-    id: Date.now(),
-    type: taskType.value,
-    title: taskTitle.value,
-    desc: taskDesc.value,
-    points: Number(taskPoints.value),
-    completed: false
-  });
-  save();
-}
+    async function save() {
+      localStorage.setItem("taskData", JSON.stringify(data));
+      await saveToGist();
+      render();
+    }
 
-function toggleTask(id) {
-  let t = data.tasks.find(t => t.id === id);
-  if (!t.completed) {
-    data.points += t.points;
-    t.completed = true;
-  }
-  save();
-}
+    /* ---------- 任务 ---------- */
+    function addTask() {
+      data.tasks.push({
+        id: Date.now(),
+        type: taskType.value,
+        title: taskTitle.value,
+        desc: taskDesc.value,
+        points: Number(taskPoints.value),
+        completed: false
+      });
+      save();
+    }
 
-function deleteTask(id) {
-  data.tasks = data.tasks.filter(t => t.id !== id);
-  save();
-}
-
-/* ---------- 消耗项 ---------- */
-function addCost() {
-  data.costs.push({
-    id: Date.now(),
-    title: costTitle.value,
-    points: Number(costPoints.value)
-  });
-  save();
-}
-
-function useCost(id) {
-  let c = data.costs.find(c => c.id === id);
-  if (data.points >= c.points) {
-    data.points -= c.points;
-    data.logs.push({
-      title: c.title,
-      points: c.points,
-      time: new Date().toLocaleString()
-    });
-    save();
-  } else {
-    alert("积分不足");
-  }
-}
-
-function deleteCost(id) {
-  data.costs = data.costs.filter(c => c.id !== id);
-  save();
-}
-
-/* ---------- 每日/周重置 ---------- */
-function getLAString() {
-  return new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
-}
-
-function resetIfNeeded() {
-  const now = new Date(getLAString());
-  const todayKey = now.toISOString().slice(0,10); // YYYY-MM-DD
-
-  const lastKey = localStorage.getItem("lastDateLA");
-
-  // 如果是新的一天
-  if (todayKey !== lastKey) {
-    // 每日任务全部 false
-    data.tasks.forEach(t => {
-      if (t.type === "daily") {
-        t.completed = false;
+    function toggleTask(id) {
+      let t = data.tasks.find(t => t.id === id);
+      if (!t.completed) {
+        data.points += t.points;
+        t.completed = true;
       }
-    });
+      save();
+    }
 
-    // 是新的一周吗？简单按 周日为一周起点
-    if (lastKey) {
-      const prev = new Date(localStorage.getItem("lastDateLA"));
-      const prevWeek = getWeekNum(prev);
-      const nowWeek = getWeekNum(now);
+    function deleteTask(id) {
+      data.tasks = data.tasks.filter(t => t.id !== id);
+      save();
+    }
 
-      if (prevWeek !== nowWeek) {
-        // 新的一周：weekly 全 false
+    /* ---------- 消耗项 ---------- */
+    function addCost() {
+      data.costs.push({
+        id: Date.now(),
+        title: costTitle.value,
+        points: Number(costPoints.value)
+      });
+      save();
+    }
+
+    function useCost(id) {
+      let c = data.costs.find(c => c.id === id);
+      if (data.points >= c.points) {
+        data.points -= c.points;
+        data.logs.push({
+          title: c.title,
+          points: c.points,
+          time: new Date().toLocaleString()
+        });
+        save();
+      } else {
+        alert("积分不足");
+      }
+    }
+
+    function deleteCost(id) {
+      data.costs = data.costs.filter(c => c.id !== id);
+      save();
+    }
+
+    /* ---------- 每日/周重置 ---------- */
+    function getLAString() {
+      return new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+    }
+
+    function resetIfNeeded() {
+      const now = new Date(getLAString());
+      const todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+      const lastKey = localStorage.getItem("lastDateLA");
+
+      // 如果是新的一天
+      if (todayKey !== lastKey) {
+        // 每日任务全部 false
         data.tasks.forEach(t => {
-          if (t.type === "weekly") {
+          if (t.type === "daily") {
             t.completed = false;
           }
         });
+
+        // 是新的一周吗？简单按 周日为一周起点
+        if (lastKey) {
+          const prev = new Date(localStorage.getItem("lastDateLA"));
+          const prevWeek = getWeekNum(prev);
+          const nowWeek = getWeekNum(now);
+
+          if (prevWeek !== nowWeek) {
+            // 新的一周：weekly 全 false
+            data.tasks.forEach(t => {
+              if (t.type === "weekly") {
+                t.completed = false;
+              }
+            });
+          }
+        }
+
+        localStorage.setItem("lastDateLA", todayKey);
+        save();
       }
     }
 
-    localStorage.setItem("lastDateLA", todayKey);
-    save();
-  }
-}
-
-function getWeekNum(d) {
-  // ISO 周数
-  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() + 4 - day);
-  const yearStart = new Date(date.getFullYear(),0,1);
-  return Math.ceil((((date - yearStart) / 86400000) + 1)/7);
-}
-
-/* ---------- 渲染 ---------- */
-function render() {
-  totalPoints.innerText = data.points;
-
-  taskList.innerHTML = "";
-  data.tasks
-  .sort((a, b) => {
-    // 先按类型排 daily 在前
-    if (a.type !== b.type) {
-      return a.type === "daily" ? -1 : 1;
+    function getWeekNum(d) {
+      // ISO 周数
+      const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const day = date.getDay() || 7;
+      date.setDate(date.getDate() + 4 - day);
+      const yearStart = new Date(date.getFullYear(), 0, 1);
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
-    // 再按 title 字母序
-    return a.title.localeCompare(b.title);
-  })
-  .forEach(t => {
-    let div = document.createElement("div");
-    div.innerHTML = `
+
+    /* ---------- 渲染 ---------- */
+    function render() {
+      totalPoints.innerText = data.points;
+
+      taskList.innerHTML = "";
+      data.tasks
+        .sort((a, b) => {
+          // 先按类型排 daily 在前
+          if (a.type !== b.type) {
+            return a.type === "daily" ? -1 : 1;
+          }
+          // 再按 title 字母序
+          return a.title.localeCompare(b.title);
+        })
+        .forEach(t => {
+          let div = document.createElement("div");
+          div.innerHTML = `
       [${t.type}] 
       <b>${t.title}</b> (${t.points}分) 
       ${t.completed ? "✔" : ""}
@@ -191,31 +198,65 @@ function render() {
       <br>${t.desc}
       <hr>
     `;
-    taskList.appendChild(div);
-  });
+          taskList.appendChild(div);
+        });
 
-  costList.innerHTML = "";
-  data.costs.forEach(c => {
-    let div = document.createElement("div");
-    div.innerHTML = `
+      costList.innerHTML = "";
+      data.costs.forEach(c => {
+        let div = document.createElement("div");
+        div.innerHTML = `
       <b>${c.title}</b>（${c.points}分）
       <button onclick="useCost(${c.id})">使用</button>
       <button onclick="deleteCost(${c.id})">删除</button>
     `;
-    costList.appendChild(div);
-  });
+        costList.appendChild(div);
+      });
 
-  costLog.innerHTML = "";
-  data.logs.forEach(l => {
-    let li = document.createElement("li");
-    li.innerText = `${l.time} - ${l.title} (-${l.points})`;
-    costLog.appendChild(li);
-  });
-}
+      costLog.innerHTML = "";
+      data.logs.forEach(l => {
+        let li = document.createElement("li");
+        li.innerText = `${l.time} - ${l.title} (-${l.points})`;
+        costLog.appendChild(li);
+      });
+    }
 
-resetIfNeeded();
-render();
-</script>
+    /* ---------- Cloud Saving ---------- */
+    async function loadFromGist() {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+      const gist = await res.json();
+      const content = gist.files[GIST_FILE].content;
+      data = JSON.parse(content);
+      localStorage.setItem("taskData", JSON.stringify(data));
+    }
+
+    async function saveToGist() {
+      await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${GITHUB_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          files: {
+            [GIST_FILE]: {
+              content: JSON.stringify(data, null, 2)
+            }
+          }
+        })
+      });
+    }
+
+    (async function init() {
+      try {
+        await loadFromGist();
+      } catch (e) {
+        console.warn("使用本地数据");
+      }
+      resetIfNeeded();
+      render();
+    })();
+  </script>
 
 </body>
+
 </html>
