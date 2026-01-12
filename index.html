@@ -49,8 +49,9 @@
 
   <script>
     /* ---------- 数据 ---------- */
-    const GIST_ID = "https://gist.github.com/Rock3Yu/216037f52ce40fd1b08deda7e22495a0";
-    const GITHUB_TOKEN = "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";
+    const GIST_ID = "216037f52ce40fd1b08deda7e22495a0";
+    const GITHUB_TOKEN = localStorage.getItem("gistToken") || prompt("Enter GitHub Gist Token:");
+    localStorage.setItem("gistToken", GITHUB_TOKEN);
     const GIST_FILE = "task-data.json";
 
     let data = JSON.parse(localStorage.getItem("taskData")) || {
@@ -60,10 +61,10 @@
       logs: []
     };
 
-    async function save() {
+    function save() {
       localStorage.setItem("taskData", JSON.stringify(data));
-      await saveToGist();
-      render();
+      render();              // 立刻更新 UI
+      saveToGist();          // 异步后台同步
     }
 
     /* ---------- 任务 ---------- */
@@ -223,27 +224,34 @@
     /* ---------- Cloud Saving ---------- */
     async function loadFromGist() {
       const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+      console.log("gist status", res.status);
       const gist = await res.json();
+      console.log("gist data", gist);
+
       const content = gist.files[GIST_FILE].content;
       data = JSON.parse(content);
       localStorage.setItem("taskData", JSON.stringify(data));
     }
 
     async function saveToGist() {
-      await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": `Bearer ${GITHUB_TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          files: {
-            [GIST_FILE]: {
-              content: JSON.stringify(data, null, 2)
+      try {
+        await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${GITHUB_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            files: {
+              [GIST_FILE]: {
+                content: JSON.stringify(data, null, 2)
+              }
             }
-          }
-        })
-      });
+          })
+        });
+      } catch (e) {
+        console.error("云同步失败", e);
+      }
     }
 
     (async function init() {
