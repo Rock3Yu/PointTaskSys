@@ -8,9 +8,14 @@
 
 <body>
 
-  <h1>个人任务 & 积分系统</h1>
+  <h1>Rock Yu の 个人积分任务系统</h1>
+  <div id="currentTime"></div>
+  <div id="lastSync"></div>
 
   <h2>当前总积分：<span id="totalPoints">0</span></h2>
+  <div id="todayStats"></div>
+
+  <div id="storageHint"></div>
 
   <hr>
 
@@ -32,6 +37,12 @@
 
   <hr>
 
+  <h3>今日已完成任务</h3>
+  <ul id="todayCompleted"></ul>
+
+  <hr>
+  <hr>
+
   <h2>创建消耗项</h2>
   标题：<input id="costTitle"><br>
   消耗积分：<input id="costPoints" type="number"><br>
@@ -50,9 +61,17 @@
   <script>
     /* ---------- 数据 ---------- */
     const GIST_ID = "216037f52ce40fd1b08deda7e22495a0";
-    const GITHUB_TOKEN = localStorage.getItem("gistToken") || prompt("Enter GitHub Gist Token:");
-    localStorage.setItem("gistToken", GITHUB_TOKEN);
+    let GITHUB_TOKEN = localStorage.getItem("gistToken");
+    if (!GITHUB_TOKEN) {
+      GITHUB_TOKEN = prompt("Enter Github Gist Token:");
+      if (GITHUB_TOKEN) {
+        localStorage.setItem("gistToken", GITHUB_TOKEN);
+      }
+    }
     const GIST_FILE = "task-data.json";
+    let cloudEnabled = true;          // 是否启用云同步
+    let lastSyncTime = null;          // 最近一次同步时间（LA）
+    let saveTimer = null;             // debounce timer
 
     let data = JSON.parse(localStorage.getItem("taskData")) || {
       points: 0,
@@ -64,7 +83,13 @@
     function save() {
       localStorage.setItem("taskData", JSON.stringify(data));
       render();              // 立刻更新 UI
-      saveToGist();          // 异步后台同步
+
+      if (!cloudEnabled) return;
+
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveToGist();
+      }, 200); // 200ms debounce
     }
 
     /* ---------- 任务 ---------- */
@@ -85,6 +110,7 @@
       if (!t.completed) {
         data.points += t.points;
         t.completed = true;
+        t.completedAt = getLAISODate();
       }
       save();
     }
@@ -92,6 +118,26 @@
     function deleteTask(id) {
       data.tasks = data.tasks.filter(t => t.id !== id);
       save();
+    }
+
+    function getTodayStats() {
+      const today = new Date(getLAString()).toISOString().slice(0, 10);
+      let earned = 0;
+      let spent = 0;
+
+      data.tasks.forEach(t => {
+        if (t.completedAt?.slice(0, 10) === today) {
+          earned += t.points;
+        }
+      });
+
+      data.logs.forEach(l => {
+        if (l.time.slice(0, 10) === today) {
+          spent += l.points;
+        }
+      });
+
+      return { earned, spent };
     }
 
     /* ---------- 消耗项 ---------- */
@@ -111,7 +157,7 @@
         data.logs.push({
           title: c.title,
           points: c.points,
-          time: new Date().toLocaleString()
+          time: getLAISODate()
         });
         save();
       } else {
@@ -161,7 +207,8 @@
         }
 
         localStorage.setItem("lastDateLA", todayKey);
-        save();
+        localStorage.setItem("taskData", JSON.stringify(data));
+        render();
       }
     }
 
@@ -174,9 +221,38 @@
       return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
 
+    function getLAISODate() {
+      return new Date(
+        new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+      ).toISOString(); // 2026-01-12T17:34:21.000Z
+    }
+
+    function getLATodayKey() {
+      return getLAISODate().slice(0, 10); // YYYY-MM-DD
+    }
+
+    function getLADisplayTime() {
+      return new Date().toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles"
+      });
+    }
+
+    function startClock() {
+      function tick() {
+        currentTime.innerText =
+          `当前时间（LA）：${getLADisplayTime()}`;
+      }
+      tick(); // 立即显示一次
+      setInterval(tick, 1000);
+    }
+
     /* ---------- 渲染 ---------- */
     function render() {
       totalPoints.innerText = data.points;
+
+      storageHint.innerText = cloudEnabled
+        ? "云同步启用中"
+        : "本地存储版本启用中";
 
       taskList.innerHTML = "";
       data.tasks
@@ -219,23 +295,64 @@
         li.innerText = `${l.time} - ${l.title} (-${l.points})`;
         costLog.appendChild(li);
       });
+
+      todayCompleted.innerHTML = "";
+
+      const today = getLATodayKey();
+
+      data.tasks.forEach(t => {
+        if (t.completed && t.completedAt?.slice(0, 10) === today) {
+          const li = document.createElement("li");
+          li.innerText = `${t.title} (+${t.points})`;
+          todayCompleted.appendChild(li);
+        }
+      });
+
+      const stats = getTodayStats();
+      todayStats.innerText =
+        `今日获得：+${stats.earned} | 今日消耗：-${stats.spent}`;
+
+      lastSync.innerText = lastSyncTime
+        ? `最近同步时间（LA）：${lastSyncTime}`
+        : "尚未同步";
+    }
+
+    function updateLastSync() {
+      lastSyncTime = getLAString();
+      localStorage.setItem("lastSyncTime", lastSyncTime);
+      render();
     }
 
     /* ---------- Cloud Saving ---------- */
     async function loadFromGist() {
-      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-      console.log("gist status", res.status);
-      const gist = await res.json();
-      console.log("gist data", gist);
+      try {
+        const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+          headers: {
+            "Authorization": `Bearer ${GITHUB_TOKEN}`
+          }
+        });
 
-      const content = gist.files[GIST_FILE].content;
-      data = JSON.parse(content);
-      localStorage.setItem("taskData", JSON.stringify(data));
+        if (!res.ok) throw new Error("Token invalid");
+
+        const gist = await res.json();
+        const content = gist.files[GIST_FILE].content;
+
+        data = JSON.parse(content);
+        localStorage.setItem("taskData", JSON.stringify(data));
+
+        cloudEnabled = true;
+        updateLastSync();
+
+      } catch (e) {
+        console.warn("云同步不可用，启用本地存储", e);
+        cloudEnabled = false;
+      }
     }
 
     async function saveToGist() {
+      if (!cloudEnabled) return;
       try {
-        await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
           method: "PATCH",
           headers: {
             "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -249,8 +366,15 @@
             }
           })
         });
+
+        if (!res.ok) throw new Error("Sync failed");
+
+        updateLastSync();
+
       } catch (e) {
-        console.error("云同步失败", e);
+        console.error("云同步失败，切换到本地模式", e);
+        cloudEnabled = false;
+        render();
       }
     }
 
@@ -261,7 +385,9 @@
         console.warn("使用本地数据");
       }
       resetIfNeeded();
+      lastSyncTime = localStorage.getItem("lastSyncTime");
       render();
+      startClock();
     })();
   </script>
 
