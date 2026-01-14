@@ -143,10 +143,10 @@
     }
 
     /* 标题输入框更长 */
-    #taskTitle,
-    #costTitle {·
+    <!-- #taskTitle,
+    #costTitle {
       width: 80%;
-    }
+    } -->
 
     /* 积分行：文字 + 输入在同一行 */
     #taskPoints,
@@ -160,6 +160,14 @@
     #taskPoints,
     #costPoints {
       margin-bottom: 6px;
+    }
+
+    /* ---------- 统一输入框高度 ---------- */
+    input[type="text"],
+    input[type="number"] {
+      height: 44px;
+      line-height: 44px;
+      padding: 0 12px;
     }
   </style>
 </head>
@@ -183,7 +191,7 @@
   <label><input type="radio" name="taskType" value="daily" checked>每日任务</label>
   <label><input type="radio" name="taskType" value="weekly">每周任务</label><br>
   标题：<input id="taskTitle"><br>
-  积分：<input id="taskPoints" type="number" min="0" max="100" step="1"><br>
+  积分 (0 ~ 100)：<input id="taskPoints" type="number" min="0" max="100" step="1"><br>
   <button onclick="addTask()">添加任务</button>
 
   <hr>
@@ -199,7 +207,7 @@
 
   <h2>创建消耗项</h2>
   标题：<input id="costTitle"><br>
-  消耗积分：<input id="costPoints" type="number" min="1" max="1000" step="1"><br>
+  消耗积分 (1 ~ 1000)：<input id="costPoints" type="number" min="1" max="1000" step="1"><br>
   <button onclick="addCost()">添加消耗项</button>
 
   <hr>
