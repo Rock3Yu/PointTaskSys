@@ -17,25 +17,20 @@
 
   <div id="storageHint"></div>
 
-  <hr>
+  <hr><hr>
 
   <h2>创建任务</h2>
   类型：
-  <select id="taskType">
-    <option value="daily">每日任务</option>
-    <option value="weekly">每周任务</option>
-  </select><br>
+  <label><input type="radio" name="taskType" value="daily" checked>每日任务</label>
+  <label><input type="radio" name="taskType" value="weekly">每周任务</label><br>
   标题：<input id="taskTitle"><br>
-  描述：<input id="taskDesc"><br>
-  积分：<input id="taskPoints" type="number"><br>
+  积分：<input id="taskPoints" type="number" min="0" max="100" step="1"><br>
   <button onclick="addTask()">添加任务</button>
 
   <hr>
 
   <h2>任务列表</h2>
   <div id="taskList"></div>
-
-  <hr>
 
   <h3>今日已完成任务</h3>
   <ul id="todayCompleted"></ul>
@@ -45,7 +40,7 @@
 
   <h2>创建消耗项</h2>
   标题：<input id="costTitle"><br>
-  消耗积分：<input id="costPoints" type="number"><br>
+  消耗积分：<input id="costPoints" type="number" min="1" max="1000" step="1"><br>
   <button onclick="addCost()">添加消耗项</button>
 
   <hr>
@@ -94,14 +89,28 @@
 
     /* ---------- 任务 ---------- */
     function addTask() {
+      if (!taskTitle.value.trim()) {
+        alert("请输入任务标题");
+        return;
+      }
+
+      const points = Number(taskPoints.value);
+      if (!Number.isInteger(points) || points < 0 || points > 100) {
+        alert("任务积分必须是 0-100 之间的整数");
+        return;
+      }
+
       data.tasks.push({
         id: Date.now(),
-        type: taskType.value,
+        type: document.querySelector('input[name="taskType"]:checked')?.value,
         title: taskTitle.value,
-        desc: taskDesc.value,
-        points: Number(taskPoints.value),
+        points: points,
         completed: false
       });
+
+      taskTitle.value = "";
+      taskPoints.value = "";
+
       save();
     }
 
@@ -111,6 +120,13 @@
         data.points += t.points;
         t.completed = true;
         t.completedAt = getLAISODate();
+
+        data.logs.push({
+          type: "task",
+          title: t.title,
+          points: t.points,
+          time: t.completedAt
+        });
       }
       save();
     }
@@ -121,19 +137,14 @@
     }
 
     function getTodayStats() {
-      const today = new Date(getLAString()).toISOString().slice(0, 10);
+      const today = getLATodayKey();
       let earned = 0;
       let spent = 0;
 
-      data.tasks.forEach(t => {
-        if (t.completedAt?.slice(0, 10) === today) {
-          earned += t.points;
-        }
-      });
-
       data.logs.forEach(l => {
         if (l.time.slice(0, 10) === today) {
-          spent += l.points;
+          if (l.type === "task") earned += l.points;
+          else if (l.type === "cost") spent += l.points;
         }
       });
 
@@ -142,11 +153,26 @@
 
     /* ---------- 消耗项 ---------- */
     function addCost() {
+      if (!costTitle.value.trim()) {
+        alert("请输入消耗项标题");
+        return;
+      }
+
+      const points = Number(costPoints.value);
+      if (!Number.isInteger(points) || points < 1 || points > 1000) {
+        alert("消耗积分必须是 1-1000 之间的整数");
+        return;
+      }
+
       data.costs.push({
         id: Date.now(),
-        title: costTitle.value,
-        points: Number(costPoints.value)
+        title: costTitle.value.trim(),
+        points: points
       });
+
+      costTitle.value = "";
+      costPoints.value = "";
+
       save();
     }
 
@@ -155,6 +181,7 @@
       if (data.points >= c.points) {
         data.points -= c.points;
         data.logs.push({
+          type: "cost",
           title: c.title,
           points: c.points,
           time: getLAISODate()
@@ -272,7 +299,6 @@
       ${t.completed ? "✔" : ""}
       <button onclick="toggleTask(${t.id})">完成</button>
       <button onclick="deleteTask(${t.id})">删除</button>
-      <br>${t.desc}
       <hr>
     `;
           taskList.appendChild(div);
@@ -291,19 +317,22 @@
 
       costLog.innerHTML = "";
       data.logs.forEach(l => {
-        let li = document.createElement("li");
-        li.innerText = `${l.time} - ${l.title} (-${l.points})`;
-        costLog.appendChild(li);
+        if (l.type === "cost") {
+          let li = document.createElement("li");
+          const displayTime = new Date(l.time).toLocaleString("en-US", {
+            timeZone: "America/Los_Angeles"
+          });
+          li.innerText = `${displayTime} - ${l.title} (-${l.points})`;
+          costLog.appendChild(li);
+        }
       });
 
       todayCompleted.innerHTML = "";
-
       const today = getLATodayKey();
-
-      data.tasks.forEach(t => {
-        if (t.completed && t.completedAt?.slice(0, 10) === today) {
+      data.logs.forEach(l => {
+        if (l.type === "task" && l.time.slice(0, 10) === today) {
           const li = document.createElement("li");
-          li.innerText = `${t.title} (+${t.points})`;
+          li.innerText = `${l.title} (+${l.points})`;
           todayCompleted.appendChild(li);
         }
       });
