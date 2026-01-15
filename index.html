@@ -213,7 +213,8 @@
   <h2>创建任务</h2>
   类型：
   <label><input type="radio" name="taskType" value="daily" checked>每日任务</label>
-  <label><input type="radio" name="taskType" value="weekly">每周任务</label><br>
+  <label><input type="radio" name="taskType" value="weekly">每周任务</label>
+  <label><input type="checkbox" id="taskRepeatable">可每日多次完成 (opt)</label><br>
   标题：<input id="taskTitle"><br>
   积分 (1 ~ 100)：<input id="taskPoints" type="number" min="1" max="100" step="1" value=1><br>
   <button onclick="addTask()">添加任务</button>
@@ -300,29 +301,32 @@
         type: document.querySelector('input[name="taskType"]:checked')?.value,
         title: taskTitle.value,
         points: points,
-        completed: false
+        completed: false,
+        repeatable: taskRepeatable.checked
       });
 
       taskTitle.value = "";
       taskPoints.value = "1";
+      taskRepeatable.checked = false;
 
       save();
     }
 
     function toggleTask(id) {
       let t = data.tasks.find(t => t.id === id);
-      if (!t.completed) {
-        data.points += t.points;
-        t.completed = true;
-        t.completedAt = getLAISODate();
 
-        data.logs.push({
-          type: "task",
-          title: t.title,
-          points: t.points,
-          time: t.completedAt
-        });
-      }
+      if (!t.repeatable && t.completed) return;
+
+      t.completed = true;
+      data.points += t.points;
+      t.completedAt = getLAISODate();
+
+      data.logs.push({
+        type: "task",
+        title: t.title,
+        points: t.points,
+        time: t.completedAt
+      });
       save();
     }
 
@@ -494,7 +498,9 @@
           div.innerHTML = `
             <div class="card-row">
               <div>
-                [${t.type}] <b>${t.title}</b> (${t.points}分)
+                [${t.type}]
+                ${t.repeatable ? "🔁" : ""}
+                <b>${t.title}</b> (${t.points}分)
                 ${t.completed ? "✅" : ""}
               </div>
               <div class="card-actions">
