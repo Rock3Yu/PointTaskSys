@@ -203,7 +203,7 @@
   <label><input type="radio" name="taskType" value="daily" checked>每日任务</label>
   <label><input type="radio" name="taskType" value="weekly">每周任务</label><br>
   标题：<input id="taskTitle"><br>
-  积分 (0 ~ 100)：<input id="taskPoints" type="number" min="0" max="100" step="1"><br>
+  积分 (1 ~ 100)：<input id="taskPoints" type="number" min="1" max="100" step="1" value=1><br>
   <button onclick="addTask()">添加任务</button>
 
   <hr>
@@ -219,7 +219,7 @@
 
   <h2>创建消耗项</h2>
   标题：<input id="costTitle"><br>
-  消耗积分 (1 ~ 1000)：<input id="costPoints" type="number" min="1" max="1000" step="1"><br>
+  消耗积分 (1 ~ 1000)：<input id="costPoints" type="number" min="1" max="1000" step="1" value=1><br>
   <button onclick="addCost()">添加消耗项</button>
 
   <hr>
@@ -278,8 +278,8 @@
       }
 
       const points = Number(taskPoints.value);
-      if (!Number.isInteger(points) || points < 0 || points > 100) {
-        alert("任务积分必须是 0-100 之间的整数");
+      if (!Number.isInteger(points) || points < 1 || points > 100) {
+        alert("任务积分必须是 1-100 之间的整数");
         return;
       }
 
@@ -292,7 +292,7 @@
       });
 
       taskTitle.value = "";
-      taskPoints.value = "";
+      taskPoints.value = "1";
 
       save();
     }
@@ -354,7 +354,7 @@
       });
 
       costTitle.value = "";
-      costPoints.value = "";
+      costPoints.value = "1";
 
       save();
     }
@@ -386,34 +386,33 @@
     }
 
     function resetIfNeeded() {
+      console.log("检查每日/周重置... resetIfNeeded()");
+
       const now = new Date(getLAString());
-      const todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      const todayKey = now.toISOString().slice(0, 10);
 
       const lastKey = localStorage.getItem("lastDateLA");
+      if (!lastKey) {
+        console.log("首次使用，设置 lastDateLA");
+        localStorage.setItem("lastDateLA", todayKey);
+        return;
+      }
 
-      // 如果是新的一天
       if (todayKey !== lastKey) {
-        // 每日任务全部 false
+        // 重置每日
         data.tasks.forEach(t => {
-          if (t.type === "daily") {
-            t.completed = false;
-          }
+          if (t.type === "daily") t.completed = false;
         });
+        console.log("已重置每日任务");
 
-        // 是新的一周吗？简单按 周日为一周起点
-        if (lastKey) {
-          const prev = new Date(localStorage.getItem("lastDateLA"));
-          const prevWeek = getWeekNum(prev);
-          const nowWeek = getWeekNum(now);
+        const prevWeek = getWeekNum(lastKey);
+        const nowWeek = getWeekNum(now);
 
-          if (prevWeek !== nowWeek) {
-            // 新的一周：weekly 全 false
-            data.tasks.forEach(t => {
-              if (t.type === "weekly") {
-                t.completed = false;
-              }
-            });
-          }
+        if (prevWeek !== nowWeek) {
+          data.tasks.forEach(t => {
+            if (t.type === "weekly") t.completed = false;
+          });
+          console.log("已重置每周任务");
         }
 
         localStorage.setItem("lastDateLA", todayKey);
@@ -424,17 +423,21 @@
 
     function getWeekNum(d) {
       // ISO 周数
-      const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const day = date.getDay() || 7;
+      const date = new Date(d);
+      const day = date.getUTCDay() || 7;
       date.setDate(date.getDate() + 4 - day);
       const yearStart = new Date(date.getFullYear(), 0, 1);
       return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
 
     function getLAISODate() {
-      return new Date(
-        new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
-      ).toISOString(); // 2026-01-12T17:34:21.000Z
+      const now = new Date();
+      return String(now.getFullYear()).padStart(4, "0") + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0") + "T" +
+        String(now.getHours()).padStart(2, "0") + ":" +
+        String(now.getMinutes()).padStart(2, "0") + ":" +
+        String(now.getSeconds()).padStart(2, "0");
     }
 
     function getLATodayKey() {
