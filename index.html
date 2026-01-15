@@ -415,15 +415,8 @@
     function resetIfNeeded() {
       console.log("检查每日/周重置... resetIfNeeded()");
 
-      const now = new Date(getLAString());
-      const todayKey = now.toISOString().slice(0, 10);
-
-      const lastKey = localStorage.getItem("lastDateLA");
-      if (!lastKey) {
-        console.log("首次使用，设置 lastDateLA");
-        localStorage.setItem("lastDateLA", todayKey);
-        return;
-      }
+      const todayKey = getLATodayKey();
+      const lastKey = localStorage.getItem("lastDateLA") || "xxxx-xx-xx";
 
       if (todayKey !== lastKey) {
         // 重置每日
@@ -433,7 +426,7 @@
         console.log("已重置每日任务");
 
         const prevWeek = getWeekNum(lastKey);
-        const nowWeek = getWeekNum(now);
+        const nowWeek = getWeekNum(todayKey);
 
         if (prevWeek !== nowWeek) {
           data.tasks.forEach(t => {
@@ -448,13 +441,16 @@
       }
     }
 
-    function getWeekNum(d) {
-      // ISO 周数
-      const date = new Date(d);
-      const day = date.getUTCDay() || 7;
-      date.setDate(date.getDate() + 4 - day);
-      const yearStart = new Date(date.getFullYear(), 0, 1);
-      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    function getWeekNumber(d) {
+      d = new Date(d);
+      d.setHours(d.getHours() + 8); // 转换为LA时间
+      d.setHours(0, 0, 0, 0);  // 设置为当天的0点0分0秒
+      // 设置为当年的第一天（1月1日）
+      d.setDate(d.getDate() + 4 - (d.getDay() || 7)); // 调整到最近的星期一
+      var yearStart = new Date(d.getFullYear(), 0, 1);
+      // 计算天数差
+      var dayDiff = (d - yearStart) / 86400000; // 24 * 60 * 60 * 1000
+      return Math.ceil((dayDiff + 1) / 7);
     }
 
     function getLAISODate() {
