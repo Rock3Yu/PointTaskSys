@@ -193,6 +193,17 @@
     .card-actions {
       white-space: nowrap;
     }
+
+    /* ---------- 已完成任务样式 ---------- */
+    .task-completed {
+      opacity: 0.5;
+      color: #6b7280;
+      transition: all 0.3s ease;
+    }
+
+    /* .task-completed b {
+      text-decoration: line-through;
+    } */
   </style>
 </head>
 
@@ -495,6 +506,8 @@
         })
         .forEach(t => {
           let div = document.createElement("div");
+          // div.className = t.completed ? "task-completed" : "";
+          div.className = t.completed && !t.repeatable ? "task-completed" : "";
           div.innerHTML = `
             <div class="card-row">
               <div>
