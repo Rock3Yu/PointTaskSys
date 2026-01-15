@@ -181,6 +181,18 @@
       line-height: 44px;
       padding: 0 12px;
     }
+
+    /* 卡片内容左右布局 */
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-actions {
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -480,47 +492,62 @@
         .forEach(t => {
           let div = document.createElement("div");
           div.innerHTML = `
-      [${t.type}] 
-      <b>${t.title}</b> (${t.points}分) 
-      ${t.completed ? "✔" : ""}
-      <button onclick="toggleTask(${t.id})">完成</button>
-      <button onclick="deleteTask(${t.id})">删除</button>
-    `;
+            <div class="card-row">
+              <div>
+                [${t.type}] <b>${t.title}</b> (${t.points}分)
+                ${t.completed ? "✅" : ""}
+              </div>
+              <div class="card-actions">
+                <button onclick="toggleTask(${t.id})">完成</button>
+                <button onclick="deleteTask(${t.id})">删除</button>
+              </div>
+            </div>
+          `;
           taskList.appendChild(div);
         });
 
       costList.innerHTML = "";
-      data.costs.forEach(c => {
-        let div = document.createElement("div");
-        div.innerHTML = `
-      <b>${c.title}</b>（${c.points}分）
-      <button onclick="useCost(${c.id})">使用</button>
-      <button onclick="deleteCost(${c.id})">删除</button>
-    `;
-        costList.appendChild(div);
-      });
+      data.costs
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .forEach(c => {
+          let div = document.createElement("div");
+          div.innerHTML = `
+            <div class="card-row">
+              <div>
+                <b>${c.title}</b>（${c.points}分）
+              </div>
+              <div class="card-actions">
+                <button onclick="useCost(${c.id})">使用</button>
+                <button onclick="deleteCost(${c.id})">删除</button>
+              </div>
+            </div>
+          `;
+          costList.appendChild(div);
+        });
 
       costLog.innerHTML = "";
-      data.logs.forEach(l => {
-        if (l.type === "cost") {
-          let li = document.createElement("li");
-          const displayTime = new Date(l.time).toLocaleString("en-US", {
-            timeZone: "America/Los_Angeles"
-          });
-          li.innerText = `${displayTime} - ${l.title} (-${l.points})`;
-          costLog.appendChild(li);
-        }
-      });
+      data.logs
+        .forEach(l => {
+          if (l.type === "cost") {
+            let li = document.createElement("li");
+            const displayTime = new Date(l.time).toLocaleString("en-US", {
+              timeZone: "America/Los_Angeles"
+            });
+            li.innerText = `${displayTime} - ${l.title} (-${l.points})`;
+            costLog.appendChild(li);
+          }
+        });
 
       todayCompleted.innerHTML = "";
       const today = getLATodayKey();
-      data.logs.forEach(l => {
-        if (l.type === "task" && l.time.slice(0, 10) === today) {
-          const li = document.createElement("li");
-          li.innerText = `${l.title} (+${l.points})`;
-          todayCompleted.appendChild(li);
-        }
-      });
+      data.logs
+        .forEach(l => {
+          if (l.type === "task" && l.time.slice(0, 10) === today) {
+            const li = document.createElement("li");
+            li.innerText = `${l.title} (+${l.points})`;
+            todayCompleted.appendChild(li);
+          }
+        });
 
       const stats = getTodayStats();
       todayStats.innerText =
