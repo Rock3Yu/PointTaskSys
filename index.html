@@ -425,8 +425,8 @@
         });
         console.log("已重置每日任务");
 
-        const prevWeek = getWeekNum(lastKey);
-        const nowWeek = getWeekNum(todayKey);
+        const prevWeek = getWeekNumber(lastKey);
+        const nowWeek = getWeekNumber(todayKey);
 
         if (prevWeek !== nowWeek) {
           data.tasks.forEach(t => {
