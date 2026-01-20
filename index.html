@@ -233,6 +233,8 @@
   <hr>
 
   <h2>任务列表</h2>
+  <button onclick="manualResetDaily()">手动重置每日任务</button>
+  <button onclick="manualResetWeekly()">手动重置每周任务</button>
   <div id="taskList"></div>
 
   <h3>今日已完成任务</h3>
@@ -414,6 +416,8 @@
 
     function resetIfNeeded() {
       console.log("检查每日/周重置... resetIfNeeded()");
+      console.log("todayKey:", todayKey);
+      console.log("lastKey:", lastKey);
 
       const todayKey = getLATodayKey();
       const lastKey = localStorage.getItem("lastDateLA") || "xxxx-xx-xx";
@@ -425,8 +429,8 @@
         });
         console.log("已重置每日任务");
 
-        const prevWeek = getWeekNumber(lastKey);
-        const nowWeek = getWeekNumber(todayKey);
+        const prevWeek = getLAISOWeekNumber(lastKey);
+        const nowWeek = getLAISOWeekNumber(todayKey);
 
         if (prevWeek !== nowWeek) {
           data.tasks.forEach(t => {
@@ -436,11 +440,11 @@
         }
 
         localStorage.setItem("lastDateLA", todayKey);
-        localStorage.setItem("taskData", JSON.stringify(data));
-        render();
+        save();
       }
     }
 
+    /*
     function getWeekNumber(d) {
       d = new Date(d);
       d.setHours(d.getHours() + 8); // 转换为LA时间
@@ -452,19 +456,50 @@
       var dayDiff = (d - yearStart) / 86400000; // 24 * 60 * 60 * 1000
       return Math.ceil((dayDiff + 1) / 7);
     }
+      */
 
-    function getLAISODate() {
-      const now = new Date();
-      return String(now.getFullYear()).padStart(4, "0") + "-" +
-        String(now.getMonth() + 1).padStart(2, "0") + "-" +
-        String(now.getDate()).padStart(2, "0") + "T" +
-        String(now.getHours()).padStart(2, "0") + ":" +
-        String(now.getMinutes()).padStart(2, "0") + ":" +
-        String(now.getSeconds()).padStart(2, "0");
+    function getLAISOWeekNumber(dateKey) {
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const date = new Date(Date.UTC(y, m - 1, d));
+      let day = date.getUTCDay();
+      if (day === 0) day = 7;
+      date.setUTCDate(date.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+      return weekNo;
     }
 
     function getLATodayKey() {
-      return getLAISODate().slice(0, 10); // YYYY-MM-DD
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date());
+
+      const y = parts.find(p => p.type === "year").value;
+      const m = parts.find(p => p.type === "month").value;
+      const d = parts.find(p => p.type === "day").value;
+
+      return `${y}-${m}-${d}`; // YYYY-MM-DD
+    }
+
+    function getLAISODate() {
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).formatToParts(now);
+
+      const v = type => parts.find(p => p.type === type).value;
+
+      return `${v("year")}-${v("month")}-${v("day")}T${v("hour")}:${v("minute")}:${v("second")}`;
     }
 
     function getLADisplayTime() {
@@ -480,6 +515,27 @@
       }
       tick(); // 立即显示一次
       setInterval(tick, 1000);
+    }
+
+    function manualResetDaily() {
+      if (!confirm("确定要重置【所有每日任务】吗？")) return;
+
+      data.tasks.forEach(t => {
+        if (t.type === "daily") t.completed = false;
+      });
+
+      localStorage.setItem("lastDateLA", getLATodayKey());
+      save();
+    }
+
+    function manualResetWeekly() {
+      if (!confirm("确定要重置【所有每周任务】吗？")) return;
+
+      data.tasks.forEach(t => {
+        if (t.type === "weekly") t.completed = false;
+      });
+
+      save();
     }
 
     /* ---------- 渲染 ---------- */
