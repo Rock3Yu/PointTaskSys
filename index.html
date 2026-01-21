@@ -416,11 +416,11 @@
 
     function resetIfNeeded() {
       console.log("检查每日/周重置... resetIfNeeded()");
-      console.log("todayKey:", todayKey);
-      console.log("lastKey:", lastKey);
 
       const todayKey = getLATodayKey();
       const lastKey = localStorage.getItem("lastDateLA") || "xxxx-xx-xx";
+      console.log("todayKey:", todayKey);
+      console.log("lastKey:", lastKey);
 
       if (todayKey !== lastKey) {
         // 重置每日
