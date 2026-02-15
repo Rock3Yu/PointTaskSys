@@ -199,12 +199,17 @@ function getLAISOWeekNumber(dateKey) {
 }
 
 function getLATodayKey() {
+  return getLADateKeyForDate(new Date());
+}
+
+/** 返回任意 Date 在 LA 时区下的日期键 YYYY-MM-DD */
+function getLADateKeyForDate(date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(date);
 
   const y = parts.find(p => p.type === "year").value;
   const m = parts.find(p => p.type === "month").value;
@@ -325,16 +330,17 @@ function render() {
     });
 
   costLog.innerHTML = "";
+  const todayKey = getLATodayKey();
+  const minDateKey = getLADateKeyForDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)); // 最近三天（含今天）
   data.logs
+    .filter(l => l.type === "cost" && l.time.slice(0, 10) >= minDateKey && l.time.slice(0, 10) <= todayKey)
     .forEach(l => {
-      if (l.type === "cost") {
-        let li = document.createElement("li");
-        const displayTime = new Date(l.time).toLocaleString("en-US", {
-          timeZone: "America/Los_Angeles"
-        });
-        li.innerText = `${displayTime} - ${l.title} (-${l.points})`;
-        costLog.appendChild(li);
-      }
+      let li = document.createElement("li");
+      const displayTime = new Date(l.time).toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles"
+      });
+      li.innerText = `${displayTime} - ${l.title} (-${l.points})`;
+      costLog.appendChild(li);
     });
 
   todayCompleted.innerHTML = "";
