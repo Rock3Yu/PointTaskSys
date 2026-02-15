@@ -1,0 +1,41 @@
+{
+  "points": 0,
+  "tasks": [
+    {
+      "id": 1700000000000,
+      "type": "daily",
+      "title": "示例每日任务",
+      "points": 5,
+      "completed": false,
+      "repeatable": false
+    },
+    {
+      "id": 1700000000001,
+      "type": "weekly",
+      "title": "示例每周任务",
+      "points": 10,
+      "completed": false
+    }
+  ],
+  "costs": [
+    {
+      "id": 1700000000002,
+      "title": "示例消耗项",
+      "points": 20
+    }
+  ],
+  "logs": [
+    {
+      "type": "task",
+      "title": "示例每日任务",
+      "points": 5,
+      "time": "2025-02-14T08:30:00"
+    },
+    {
+      "type": "cost",
+      "title": "示例消耗项",
+      "points": 20,
+      "time": "2025-02-14T09:00:00"
+    }
+  ]
+}

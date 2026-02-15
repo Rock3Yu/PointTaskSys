@@ -1,0 +1,185 @@
+/* ---------- 基础 ---------- */
+html {
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 30px;
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #e5fcef;
+  color: #1f2937;
+  margin: 0;
+  padding: 16px;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  color: #0f4c81;
+}
+
+h1 {
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #dbeafe;
+  margin: 20px 0;
+}
+
+/* ---------- 信息提示 ---------- */
+#currentTime,
+#lastSync,
+#storageHint,
+#todayStats {
+  font-size: 0.95rem;
+  color: #2563eb;
+  margin-top: 6px;
+}
+
+#storageHint {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* ---------- 输入 ---------- */
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+  box-sizing: border-box;
+}
+
+input[type="radio"] {
+  transform: scale(1.2);
+  margin-right: 4px;
+}
+
+label {
+  margin-right: 12px;
+}
+
+/* ---------- 按钮 ---------- */
+button {
+  padding: 8px 14px;
+  margin: 6px 4px 6px 0;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* ---------- 列表卡片 ---------- */
+#taskList > div,
+#costList > div {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ---------- 已完成任务 ---------- */
+#todayCompleted li {
+  background: #e0f2fe;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+/* ---------- 消耗记录 ---------- */
+#costLog li {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (min-width: 768px) {
+  body {
+    max-width: 700px;
+    margin: auto;
+    padding: 24px;
+  }
+}
+
+/* ---------- 创建区域输入行优化 ---------- */
+h2 + label,
+h2 + input {
+  display: inline-block;
+}
+
+/* 积分行：文字 + 输入在同一行 */
+#taskPoints,
+#costPoints {
+  width: 120px;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+#taskPoints,
+#costPoints {
+  margin-bottom: 6px;
+}
+
+/* ---------- 统一输入框高度 ---------- */
+input[type="text"],
+input[type="number"] {
+  height: 44px;
+  line-height: 44px;
+  padding: 0 12px;
+}
+
+/* 卡片内容左右布局 */
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-actions {
+  white-space: nowrap;
+}
+
+/* ---------- 已完成任务样式 ---------- */
+.task-completed {
+  opacity: 0.5;
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
